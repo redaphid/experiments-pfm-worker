@@ -12,13 +12,24 @@ class PFMWorkerMaster {
   start() {
     console.log('starting up');
     this.client = new Redis();
-    this.client.subscribe(this.subscribeTopic);
-    this.client.on('message', (channel, message) => this.fillQueue(message));
+    this.subscriber = new Redis();
+    this.subscriber.subscribe(this.subscribeTopic);
+    this.subscriber.on('message', (channel, message) => this.fillQueue(message));
   }
 
   fillQueue (message) {
     const jobs = JSON.parse(message);
-    _.map(jobs, (job) => this.queueJob(job));
+    console.log(`putting ${jobs.length} jobs into ${this.queue}`);
+    this.client.lpush(this.queue, _.map(jobs, JSON.stringify))
+      .then( ()=> this.getEmAll() )
+  }
+
+  getEmAll() {
+    this.client.rpop(this.queue)
+      .then( (job) => {
+        console.log('got job', JSON.parse(job))
+        if(job) this.getEmAll();
+      })
   }
 
   queueJob (job) {

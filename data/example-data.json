@@ -1,7 +1,14 @@
 [
-  "a",
-  "bunch",
-  "of",
-  "random",
-  "things"
+  {
+    "name": "Jessica",
+    "age": 25
+  },
+  {
+    "name": "Alexis Fox",
+    "age": 24
+  },
+  {
+    "name": "I don't remember",
+    "age": 19
+  }
 ]
