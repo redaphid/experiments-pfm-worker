@@ -54,6 +54,7 @@ function doCliStuff() {
   try {
     options = cliParser.parse(process.argv);
   }
+  
   catch(error) {
     die();
   }

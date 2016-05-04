@@ -4,18 +4,19 @@ var Redis     = require('ioredis');
 var dashdash  = require('dashdash');
 var debug     = require('debug')('pfm:worker');
 
-class PFMWorkerMaster {
-  constructor(emitTopic, queue) {
-      this.emitTopic = emitTopic;
+class PFMWorker {
+  constructor(finishedTopic, queue) {
+      this.finishedTopic = finishedTopic;
       this.queue = queue;
   }
 
   start() {
     debug('starting up');
     this.client = new Redis();
+    this.work();
   }
 
-  getEmAll() {
+  work() {
     this.client.rpop(this.queue)
       .then( (rawJob) => {
         if(!rawJob) {
@@ -24,16 +25,16 @@ class PFMWorkerMaster {
         }
         const job = JSON.parse(rawJob);
         debug('got job', JSON.stringify(job))
-        getEmAll();
+        this.work();
       })
   }
 }
 
 const options = doCliStuff();
 
-const master = new PFMWorkerMaster(options.emitTopic, options.queue);
+const worker = new PFMWorker(options.finishedTopic, options.queue);
 
-master.start();
+worker.start();
 
 function doCliStuff() {
   var cliParser = dashdash.createParser({options: [
@@ -51,7 +52,7 @@ function doCliStuff() {
 
   try {
     const options = cliParser.parse(process.argv);
-    if(!options.queue) die();    
+    if(!options.queue) die();
 
     return {queue: options.queue, finishedTopic: options.finished_topic};
   }
