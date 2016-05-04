@@ -4,8 +4,12 @@ var Redis     = require('ioredis');
 var dashdash  = require('dashdash');
 var debug     = require('debug')('pfm:worker');
 
+const FINISHED_MESSAGE = JSON.stringify(['some', 'random', 'bullshit']);
+
 class PFMWorker {
   constructor(finishedTopic, queue) {
+      debug(`new PFMWorker on ${queue}`);
+      if(finishedTopic) debug(`will broadcast to ${finishedTopic} when finished.`);
       this.finishedTopic = finishedTopic;
       this.queue = queue;
   }
@@ -19,14 +23,21 @@ class PFMWorker {
   work() {
     this.client.rpop(this.queue)
       .then( (rawJob) => {
-        if(!rawJob) {
-          debug('no more work to do!');
-          process.exit(0);
-        }
+        if(!rawJob) return this.finish();
         const job = JSON.parse(rawJob);
-        debug('got job', JSON.stringify(job))
+        debug('got job', job);
         this.work();
-      })
+      });
+  }
+
+  finish() {
+    debug('finished!')
+    if(!this.finishedTopic) process.exit(0);
+
+    if(this.finishedTopic) {
+      debug(`telling everyone I've finished on topic: ${this.finishedTopic}`);
+      this.client.publish(this.finishedTopic, FINISHED_MESSAGE).then( () => process.exit(0) );
+    }
   }
 }
 
