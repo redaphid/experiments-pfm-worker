@@ -2,6 +2,7 @@
 var _         = require('lodash')
 var Redis     = require('ioredis');
 var dashdash  = require('dashdash');
+var debug     = require('debug')('pfm:worker');
 
 class PFMWorkerMaster {
   constructor(emitTopic, queue) {
@@ -10,31 +11,21 @@ class PFMWorkerMaster {
   }
 
   start() {
-    console.log('starting up');
+    debug('starting up');
     this.client = new Redis();
-    this.subscriber = new Redis();
-    this.subscriber.subscribe(this.emitTopic);
-    this.subscriber.on('message', (channel, message) => this.fillQueue(message));
-  }
-
-  fillQueue (message) {
-    const jobs = JSON.parse(message);
-
-    console.log(`putting ${jobs.length} jobs into ${this.queue}`);
-    this.client.lpush(this.queue, _.map(jobs, JSON.stringify)
-      .then( ()=> this.getEmAll() )
   }
 
   getEmAll() {
     this.client.rpop(this.queue)
-      .then( (job) => {
-        console.log('got job', JSON.stringify(job))
-        if(job) this.getEmAll();
+      .then( (rawJob) => {
+        if(!rawJob) {
+          debug('no more work to do!');
+          process.exit(0);
+        }
+        const job = JSON.parse(rawJob);
+        debug('got job', JSON.stringify(job))
+        getEmAll();
       })
-  }
-
-  queueJob (job) {
-      console.log(`I was going to queue up ${job}, but I didn't.`);
   }
 }
 
@@ -58,15 +49,13 @@ function doCliStuff() {
     }
   ]});
 
-  var options = {}
   try {
-    options = cliParser.parse(process.argv);
+    const options = cliParser.parse(process.argv);
+    if(!options.queue) die();    
+
+    return {queue: options.queue, finishedTopic: options.finished_topic};
   }
   catch(error) {
-    die();
-  }
-
-  if(!options.queue) {
     die();
   }
 
@@ -75,6 +64,4 @@ function doCliStuff() {
     console.error(cliParser.help());
     process.exit(-1);
   }
-
-  return {queue: options.queue, finishedTopic: options.finished_topic};
 }

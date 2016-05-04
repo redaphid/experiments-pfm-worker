@@ -15,31 +15,18 @@ class PFMWorkerMaster {
     this.client = new Redis();
     this.subscriber = new Redis();
     this.subscriber.subscribe(this.beginTopic);
-    this.subscriber.on('message', (channel, message) => this.fillQueue(message));
+    this.subscriber.on('message', (channel, message) => this.queueWork(message));
   }
 
-  fillQueue (message) {
+  queueWork (message) {
     const jobs = JSON.parse(message);
 
     debug(`putting ${jobs.length} jobs into ${this.queue}`);
 
     this.client.lpush(this.queue, _.map(jobs, JSON.stringify))
-      .then( ()=> this.getEmAll() )
-  }
-
-  getEmAll() {
-    this.client.rpop(this.queue)
-      .then( (job) => {
-        debug('got job', JSON.stringify(job))
-        if(!job){
-          debug('no more work to do!');
-          return;
-        } this.getEmAll();
+      .then(() => {
+        debug("done queueing work. If I were on lambda, I'd kill myself now")
       })
-  }
-
-  queueJob (job) {
-      console.log(`I was going to queue up ${job}, but I didn't.`);
   }
 }
 
