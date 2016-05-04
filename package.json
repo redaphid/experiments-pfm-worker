@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "dashdash": "^1.13.1",
+    "debug": "^2.2.0",
     "ioredis": "^1.15.1",
     "lodash": "^4.11.2",
     "uuid": "^2.0.2"
